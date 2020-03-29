@@ -32,20 +32,47 @@ def get_new_piece(piece_set):
         elif piece == 10: return I()
         elif piece == 11: return Square()
 
-def line_check(fixed_squares, fixed_squares_map):
+def line_check(fixed_squares, fixed_squares_map, do_second_check=True, num_of_lines_destroyed=0):
     lines = list(range(0, altura+1, escala))
     lines.reverse()
-    num_of_lines_destroyed = 0
-    for line_val in lines:
+    game_over = False
+    
+    marked_for_remove = []
+    lines_to_remove = []
+
+    if fixed_squares_map[escala*2] >= 1:
+        game_over = True
+        return num_of_lines_destroyed, fixed_squares, fixed_squares_map, game_over
+
+    for line_val in lines:    
         if fixed_squares_map.get(line_val):
             if fixed_squares_map[line_val] >= numero_colunas:
                 num_of_lines_destroyed += 1
-                fixed_squares_map[line_val] -= numero_colunas
-    return num_of_lines_destroyed
+                lines_to_remove.append(line_val)
+
+    for line_val in lines_to_remove:
+        for square in fixed_squares:
+            if square.posicao_y == line_val:
+                marked_for_remove.append(square)
+            elif square.posicao_y < line_val:
+                square.posicao_y += escala
+                square.posicao = (square.posicao_x, square.posicao_y)
+    
+    for square in marked_for_remove:
+        fixed_squares.remove(square)
+
+    fixed_squares_map = collections.Counter()
+    for square in fixed_squares:
+        fixed_squares_map.update([square.posicao_y])
+
+    if do_second_check:
+        num_of_lines_destroyed, fixed_squares, fixed_squares_map, game_over = line_check(fixed_squares, fixed_squares_map, do_second_check=False, num_of_lines_destroyed=num_of_lines_destroyed)
+
+    return num_of_lines_destroyed, fixed_squares, fixed_squares_map, game_over
     
 
 def level_check(score):
-    steps = list(range(0,1001,100))
+    steps = list(range(0,1001,10))
     steps_idx = len(steps)-2
     while steps_idx:
         if score < steps[steps_idx+1] and score >= steps[steps_idx]:
@@ -101,10 +128,14 @@ while True:
             for square in falling_piece.sprite:
                 fixed_squares.append(square)
                 fixed_squares_map.update([square.posicao_y])
+            
+            print(len(fixed_squares))
+
             falling_piece = next_piece
             falling_piece.push_to_game()
             next_piece = get_new_piece(game_set)
-            num_of_lines_destroyed = line_check(fixed_squares, fixed_squares_map)
+            num_of_lines_destroyed, fixed_squares, fixed_squares_map, game_over = line_check(fixed_squares, fixed_squares_map)
+
             
             if num_of_lines_destroyed > 0:
                 lines_destroyed += num_of_lines_destroyed
@@ -161,5 +192,15 @@ while True:
             restart = False
             game_speed = init_game_speed
             score = 0
+            lines_destroyed = 0
+            score = 0
+            level = 0
+            fixed_squares_map = collections.Counter()
+            fixed_squares = []
+            falling_piece = get_new_piece('classic')
+            falling_piece.push_to_game()
+            next_piece = get_new_piece('classic')
+
+
         
         pygame.display.update()

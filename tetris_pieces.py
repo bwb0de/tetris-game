@@ -50,7 +50,6 @@ class BaseSquare:
 class TetrisPiece:
     def __init__(self, cor, next_piece=True):
         self.posicao = ((largura + (escala * 5) // 4, escala * 2))
-        #self.grid_fixer = ((largura // 2) - (2 * escala) // escala)
         self.shape = [[[1]]]
         self.sprite = []
         self.color = cor
