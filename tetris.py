@@ -17,6 +17,7 @@ clock = pygame.time.Clock()
 score = 0
 lines_destroyed = 0
 level = 0
+last_level = 0
 info_field = pygame.Surface((info, altura))
 info_field.fill(color_info_background)
 
@@ -72,7 +73,7 @@ def line_check(fixed_squares, fixed_squares_map, do_second_check=True, num_of_li
     
 
 def level_check(score):
-    steps = list(range(0,1001,10))
+    steps = list(range(0,1001,50))
     steps_idx = len(steps)-2
     while steps_idx:
         if score < steps[steps_idx+1] and score >= steps[steps_idx]:
@@ -128,8 +129,6 @@ while True:
             for square in falling_piece.sprite:
                 fixed_squares.append(square)
                 fixed_squares_map.update([square.posicao_y])
-            
-            print(len(fixed_squares))
 
             falling_piece = next_piece
             falling_piece.push_to_game()
@@ -139,8 +138,14 @@ while True:
             
             if num_of_lines_destroyed > 0:
                 lines_destroyed += num_of_lines_destroyed
-                score += num_of_lines_destroyed ** num_of_lines_destroyed
+                score += num_of_lines_destroyed ** 3
                 level = level_check(score)
+                if level > last_level:
+                    dif = level - last_level
+                    last_level = level
+                    game_speed += dif*4 
+                    
+                
 
         ### Limpa a tela para redesenhar os objetos
         screen.fill(color_background)
