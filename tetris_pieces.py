@@ -168,9 +168,9 @@ class TetrisPiece:
     
 
 
-class Square(TetrisPiece):
+class O(TetrisPiece):
     def __init__(self):
-        super(Square, self).__init__(azul)
+        super(O, self).__init__(azul)
         self.shape = [
             [[1,1],
              [1,1]]
@@ -297,9 +297,9 @@ class U(TetrisPiece):
         self.criate_sprite()
 
 
-class L_reversed(TetrisPiece):
+class J(TetrisPiece):
     def __init__(self):
-        super(L_reversed, self).__init__(violeta)
+        super(J, self).__init__(violeta)
         self.shape = [
             [[0,1,0],
              [0,1,0],

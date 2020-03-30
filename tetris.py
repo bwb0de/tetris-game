@@ -27,11 +27,11 @@ def get_new_piece(piece_set):
         piece = random.randint(0,11)
         if piece in (0, 1): return T()
         elif piece in (2, 3): return L()
-        elif piece in (4, 5): return L_reversed()
+        elif piece in (4, 5): return J()
         elif piece in (6, 7): return S()
         elif piece in (8, 9): return Z()
         elif piece == 10: return I()
-        elif piece == 11: return Square()
+        elif piece == 11: return O()
 
 def line_check(fixed_squares, fixed_squares_map, num_of_lines_destroyed=0):
     lines = list(range(0, altura+1, escala))
