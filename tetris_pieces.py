@@ -91,7 +91,7 @@ class TetrisPiece:
             self.sprite.reverse()
 
     def push_to_game(self):
-        self.posicao = ((largura // 2), -2*escala)
+        self.posicao = ((largura // 2) - escala, -2*escala)
         self.criate_sprite()
 
     def fall(self, fixed_squares):

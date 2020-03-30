@@ -16,7 +16,7 @@ marrom = 222, 184, 135
 violeta = 238, 130, 238
 
 init_game_speed = 40
-escala = 25
+escala = 30
 numero_colunas = 12
 numero_linhas = 26
 color_background = preto
@@ -24,5 +24,5 @@ color_info_background = cinza
 
 largura = escala * numero_colunas 
 altura = escala * numero_linhas 
-info = escala * 5
+info = escala * 5 + escala // 2
 
