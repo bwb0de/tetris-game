@@ -16,13 +16,25 @@ class BaseSquare:
         self.pele.fill(cor)
 
     def check_colision(self, fixed_squares):
-        for element in fixed_squares:
-            if self.posicao_x == element.posicao_x and self.posicao_y + escala == element.posicao_y:
+        for square in fixed_squares:
+            if self.posicao_x == square.posicao_x and self.posicao_y + escala == square.posicao_y:
                 return True
 
     def check_flor_colision(self):
         if self.posicao_y >= altura - escala:
             return True
+        return False
+
+    def check_left_square_colision(self, fixed_squares):
+        for square in fixed_squares:
+            if self.posicao_x - escala == square.posicao_x and self.posicao_y == square.posicao_y:
+                return True
+        return False
+
+    def check_right_square_colision(self, fixed_squares):
+        for square in fixed_squares:
+            if self.posicao_x + escala == square.posicao_x and self.posicao_y == square.posicao_y:
+                return True
         return False
 
     def check_left_wall_colision(self):
@@ -79,7 +91,7 @@ class TetrisPiece:
             self.sprite.reverse()
 
     def push_to_game(self):
-        self.posicao = ((largura // 2), 0)
+        self.posicao = ((largura // 2), -2*escala)
         self.criate_sprite()
 
     def fall(self, fixed_squares):
@@ -106,11 +118,14 @@ class TetrisPiece:
     def fall_faster(self):
         self.fall_delay_max_steps = 0
 
-    def move(self, side):
+    def move(self, side, fixed_squares):
         if side == 'esquerda':
             for squares in self.sprite:
                 if squares.check_left_wall_colision():
                     return False
+                elif squares.check_left_square_colision(fixed_squares):
+                    return False
+
 
             for squares in self.sprite:
                 squares.posicao_x -= escala
@@ -121,6 +136,9 @@ class TetrisPiece:
             for squares in self.sprite:
                 if squares.check_right_wall_colision():
                     return False
+                elif squares.check_right_square_colision(fixed_squares):
+                    return False
+
 
             for squares in self.sprite:
                 squares.posicao_x += escala
@@ -128,7 +146,7 @@ class TetrisPiece:
             self.posicao = (self.posicao[0] + escala, self.posicao[1])
         return True
     
-    def rotate(self, sentido):
+    def rotate(self, sentido, fixed_squares):
         if sentido == 'sentido horário':
             self.image_index += 1
             if self.image_index > self.max_image_index:
@@ -143,9 +161,9 @@ class TetrisPiece:
 
         for squares in self.sprite:
             if squares.check_transpassing_left_wall():
-                self.move('direita')
+                self.move('direita', fixed_squares)
             if squares.check_transpassing_right_wall():
-                self.move('esquerda')
+                self.move('esquerda', fixed_squares)
 
     
 
