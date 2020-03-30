@@ -33,7 +33,7 @@ def get_new_piece(piece_set):
         elif piece == 10: return I()
         elif piece == 11: return Square()
 
-def line_check(fixed_squares, fixed_squares_map, do_second_check=True, num_of_lines_destroyed=0):
+def line_check(fixed_squares, fixed_squares_map, num_of_lines_destroyed=0):
     lines = list(range(0, altura+1, escala))
     lines.reverse()
     game_over = False
@@ -66,8 +66,10 @@ def line_check(fixed_squares, fixed_squares_map, do_second_check=True, num_of_li
     for square in fixed_squares:
         fixed_squares_map.update([square.posicao_y])
 
-    if do_second_check:
-        num_of_lines_destroyed, fixed_squares, fixed_squares_map, game_over = line_check(fixed_squares, fixed_squares_map, do_second_check=False, num_of_lines_destroyed=num_of_lines_destroyed)
+    for line_val in lines:    
+        if fixed_squares_map.get(line_val):
+            if fixed_squares_map[line_val] >= numero_colunas:
+                num_of_lines_destroyed, fixed_squares, fixed_squares_map, game_over = line_check(fixed_squares, fixed_squares_map, num_of_lines_destroyed=num_of_lines_destroyed)
 
     return num_of_lines_destroyed, fixed_squares, fixed_squares_map, game_over
     
@@ -107,16 +109,16 @@ while True:
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
-                    falling_piece.rotate('sentido horário')
+                    falling_piece.rotate('sentido horário', fixed_squares)
                 elif event.key == pygame.K_SPACE:
-                    falling_piece.rotate('sentido anti-horário')
+                    falling_piece.rotate('sentido anti-horário', fixed_squares)
                     falling_piece.criate_sprite()
                 elif event.key == pygame.K_DOWN:
                     falling_piece.fall_faster()
                 elif event.key == pygame.K_LEFT:
-                    falling_piece.move('esquerda')
+                    falling_piece.move('esquerda', fixed_squares)
                 elif event.key == pygame.K_RIGHT:
-                    falling_piece.move('direita')
+                    falling_piece.move('direita', fixed_squares)
                
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit()
@@ -150,6 +152,12 @@ while True:
         ### Limpa a tela para redesenhar os objetos
         screen.fill(color_background)
         screen.blit(info_field, (largura, 0))
+
+        # Desenha a grade 
+        for x in range(0, largura, escala):
+            pygame.draw.line(screen, cinza, (x, 0), (x, altura))
+        for y in range(0, altura, escala):
+            pygame.draw.line(screen, cinza, (0, y), (largura, y))        
         
   
         ### Desenhando objetos 
