@@ -12,7 +12,7 @@ from tetris_config import *
 #Definição da janela do jogo
 pygame.init()
 screen = pygame.display.set_mode((largura+info, altura))
-pygame.display.set_caption('Tetris')
+pygame.display.set_caption('Tetris | score: 0 | lines: 0 | level: 0')
 clock = pygame.time.Clock()
 score = 0
 lines_destroyed = 0
