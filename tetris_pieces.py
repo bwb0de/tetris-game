@@ -4,13 +4,74 @@
 #
 
 import pygame, itertools
+import numpy as np
+import itertools
 
 from tetris_config import *
 
+def x_pos_matrix(arr, escala):
+    counter = itertools.count()
+    a = arr.copy()
+    while True:
+        idx = next(counter)
+        x_val = idx*escala
+        try: 
+            a_mask = a[:,idx] > 0
+            a[:,idx][a_mask] = x_val
+        except IndexError: 
+            break
+    return a
+
+
+def y_pos_matrix(arr, escala):
+    counter = itertools.count()
+    a = arr.copy()
+    while True:
+        idx = next(counter)
+        y_val = idx*escala
+        try: 
+            a_mask = a[idx,:] > 0
+            a[idx,:][a_mask] = y_val
+        except IndexError: 
+            break
+    return a            
+
+def vector_pos(arr, escala):
+    x = x_pos_matrix(arr.copy(), escala)
+    y = y_pos_matrix(arr.copy(), escala)
+    counter = itertools.count()
+    
+    while True:
+        try:
+            x_pos = next(counter)
+            line = np.vstack((arr[x_pos,:], x[x_pos,:], y[x_pos,:]))
+            yield line
+        except IndexError:
+            break
+
+def select_valid_vectors(arr, escala):
+    vectors = vector_pos(arr, escala)
+    for v in vectors:
+        if v.any():
+            v_mask = v[0] > 0
+            v_out = np.vstack((v[1][v_mask], v[2][v_mask]))
+            yield v_out
+
+def return_vector(arr, escala):
+    vectors = select_valid_vectors(arr, escala)
+    for v_line in vectors:
+        counter = itertools.count()
+        while True:
+            try: yield v_line[:,next(counter)]
+            except IndexError: break
+
+
+
+
 class BaseSquare:
     def __init__(self, cor, init_pos, relative_x, relative_y):
-        self.posicao_x = init_pos[0] + (escala * relative_x)
-        self.posicao_y = init_pos[1] + (escala * relative_y)
+        self.posicao_x = init_pos[0] + relative_x
+        self.posicao_y = init_pos[1] + relative_y
         self.posicao = (self.posicao_x, self.posicao_y)
         self.pele = pygame.Surface((escala, escala))
         self.pele.fill(cor)
@@ -76,19 +137,14 @@ class TetrisPiece:
         self.step_size = escala * 1
     
     def criate_sprite(self):
-        if self.shape == False:
-            pass
-        else:
-            self.sprite = []
-            relative_y_counter = itertools.count(0)
-            for line in self.shape[self.image_index]:
-                relative_y = next(relative_y_counter)
-                relative_x_counter = itertools.count(0)
-                for col in line:
-                    relative_x = next(relative_x_counter)
-                    if col:
-                        self.sprite.append(BaseSquare(self.color, self.posicao, relative_x, relative_y))
-            self.sprite.reverse()
+        self.sprite = []
+        valid_vectors = return_vector(self.shape[self.image_index], escala)
+
+        for valid_vector in valid_vectors:
+            relative_x = valid_vector[0]
+            relative_y = valid_vector[1]
+            self.sprite.append(BaseSquare(self.color, self.posicao, relative_x, relative_y))
+        self.sprite.reverse()
 
     def push_to_game(self):
         self.posicao = ((largura // 2) - escala, -2*escala)
@@ -171,10 +227,10 @@ class TetrisPiece:
 class O(TetrisPiece):
     def __init__(self):
         super(O, self).__init__(azul)
-        self.shape = [
+        self.shape = np.array([
             [[1,1],
              [1,1]]
-        ]
+        ], dtype='int8')
         self.min_image_index = 0
         self.max_image_index = 0
         self.image_index = 0
@@ -184,7 +240,7 @@ class O(TetrisPiece):
 class I(TetrisPiece):
     def __init__(self):
         super(I, self).__init__(verde_marinho)
-        self.shape = [
+        self.shape = np.array([
             [[0,1,0,0],
              [0,1,0,0],
              [0,1,0,0],            
@@ -194,7 +250,7 @@ class I(TetrisPiece):
              [1,1,1,1],
              [0,0,0,0],            
              [0,0,0,0]],
-        ]
+        ], dtype='int8')
         self.min_image_index = 0
         self.max_image_index = 1
         self.image_index = 0
@@ -205,7 +261,7 @@ class I(TetrisPiece):
 class T(TetrisPiece):
     def __init__(self):
         super(T, self).__init__(verde)
-        self.shape = [
+        self.shape = np.array([
             [[0,1,0],
              [1,1,1],
              [0,0,0]],
@@ -221,7 +277,7 @@ class T(TetrisPiece):
             [[0,1,0],
              [1,1,0],
              [0,1,0]],
-        ]
+        ], dtype='int8')
         self.min_image_index = 0
         self.max_image_index = 3
         self.image_index = 0
@@ -230,7 +286,7 @@ class T(TetrisPiece):
 class L(TetrisPiece):
     def __init__(self):
         super(L, self).__init__(marrom)
-        self.shape = [
+        self.shape = np.array([
             [[0,1,0],
              [0,1,0],
              [0,1,1]],
@@ -246,7 +302,7 @@ class L(TetrisPiece):
             [[0,0,1],
              [1,1,1],
              [0,0,0]],
-        ]
+        ], dtype='int8')
         self.min_image_index = 0
         self.max_image_index = 3
         self.image_index = 0
@@ -256,7 +312,7 @@ class L(TetrisPiece):
 class S(TetrisPiece):
     def __init__(self):
         super(S, self).__init__(vermelho)
-        self.shape =[
+        self.shape = np.array([
             [[0,1,1],
              [1,1,0],
              [0,0,0]],
@@ -264,7 +320,7 @@ class S(TetrisPiece):
             [[1,0,0],
              [1,1,0],
              [0,1,0]],            
-        ]
+        ], dtype='int8')
         self.min_image_index = 0
         self.max_image_index = 1
         self.image_index = 0
@@ -274,7 +330,7 @@ class S(TetrisPiece):
 class U(TetrisPiece):
     def __init__(self):
         super(U, self).__init__(branco)
-        self.shape =[
+        self.shape = np.array([
             [[1,0,1],
              [1,1,1],
              [0,0,0]],
@@ -290,7 +346,7 @@ class U(TetrisPiece):
             [[1,1,0],
              [0,1,0],
              [1,1,0]],
-        ]
+        ], dtype='int8')
         self.min_image_index = 0
         self.max_image_index = 3
         self.image_index = 0
@@ -300,7 +356,7 @@ class U(TetrisPiece):
 class J(TetrisPiece):
     def __init__(self):
         super(J, self).__init__(violeta)
-        self.shape = [
+        self.shape = np.array([
             [[0,1,0],
              [0,1,0],
              [1,1,0]],
@@ -316,7 +372,7 @@ class J(TetrisPiece):
             [[0,0,0],
              [1,1,1],
              [0,0,1]],
-        ]
+        ], dtype='int8')
         self.min_image_index = 0
         self.max_image_index = 3
         self.image_index = 0
@@ -326,7 +382,7 @@ class J(TetrisPiece):
 class Z(TetrisPiece):
     def __init__(self):
         super(Z, self).__init__(cinza_claro)
-        self.shape =[
+        self.shape = np.array([
             [[1,1,0],
              [0,1,1],
              [0,0,0]],
@@ -334,7 +390,7 @@ class Z(TetrisPiece):
             [[0,1,0],
              [1,1,0],
              [1,0,0]],            
-        ]
+        ], dtype='int8')
         self.min_image_index = 0
         self.max_image_index = 1
         self.image_index = 0
