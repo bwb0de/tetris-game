@@ -9,6 +9,8 @@ import itertools
 
 from tetris_config import *
 
+square_count = itertools.count()
+
 def x_pos_matrix(arr, escala):
     counter = itertools.count()
     a = arr.copy()
@@ -70,6 +72,7 @@ def return_vector(arr, escala):
 
 class BaseSquare:
     def __init__(self, cor, init_pos, relative_x, relative_y):
+        self.idx = next(square_count)
         self.posicao_x = init_pos[0] + relative_x
         self.posicao_y = init_pos[1] + relative_y
         self.posicao = (self.posicao_x, self.posicao_y)
@@ -77,8 +80,8 @@ class BaseSquare:
         self.pele.fill(cor)
 
     def check_colision(self, fixed_squares):
-        for square in fixed_squares:
-            if self.posicao_x == square.posicao_x and self.posicao_y + escala == square.posicao_y:
+        for idx in fixed_squares.keys():
+            if self.posicao_x == fixed_squares[idx].posicao_x and self.posicao_y + escala >= fixed_squares[idx].posicao_y:
                 return True
 
     def check_flor_colision(self):
@@ -87,14 +90,14 @@ class BaseSquare:
         return False
 
     def check_left_square_colision(self, fixed_squares):
-        for square in fixed_squares:
-            if self.posicao_x - escala == square.posicao_x and self.posicao_y == square.posicao_y:
+        for idx in fixed_squares.keys():
+            if self.posicao_x - escala == fixed_squares[idx].posicao_x and self.posicao_y == fixed_squares[idx].posicao_y:
                 return True
         return False
 
     def check_right_square_colision(self, fixed_squares):
-        for square in fixed_squares:
-            if self.posicao_x + escala == square.posicao_x and self.posicao_y == square.posicao_y:
+        for idx in fixed_squares.keys():
+            if self.posicao_x + escala == fixed_squares[idx].posicao_x and self.posicao_y == fixed_squares[idx].posicao_y:
                 return True
         return False
 
@@ -146,33 +149,45 @@ class TetrisPiece:
             self.sprite.append(BaseSquare(self.color, self.posicao, relative_x, relative_y))
         self.sprite.reverse()
 
+    def check_colision(self, game_field, escala):
+        result = []
+        for square in self.sprite:
+            idx_x = square.posicao[0] // escala
+            idx_y = (square.posicao[1] + escala) // escala
+            print(game_field[idx_x, idx_y])
+            if game_field[idx_y, idx_x] != 0: result.append(True)
+            else: result.append(False)
+
+        return any(result)
+
     def push_to_game(self):
         self.posicao = ((largura // 2) - escala, -2*escala)
         self.criate_sprite()
 
-    def fall(self, fixed_squares):
-        if self.stop_fall:
-            pass
-        else:
-            self.fall_steps += 1
-            if self.fall_steps >= self.fall_delay_max_steps:
-                self.fall_steps = 0
+    def fall(self, fixed_squares, game_field, escala):
+        self.fall_steps += 1
+        if self.fall_steps >= self.fall_delay_max_steps:
+            self.fall_steps = 0
 
+            for squares in self.sprite:
+                if squares.check_flor_colision() or squares.check_colision(fixed_squares):
+                    self.stop_fall = True
+                    return False
+
+            if not self.stop_fall:
+                self.posicao = (self.posicao[0], self.posicao[1] + escala)
                 for squares in self.sprite:
-                    if squares.check_flor_colision() or squares.check_colision(fixed_squares):
-                        self.stop_fall = True
-                        return False
-
-                if not self.stop_fall:
-                    self.posicao = (self.posicao[0], self.posicao[1] + escala)
-                    for squares in self.sprite:
-                        squares.posicao_y += escala
-                        squares.posicao = (squares.posicao_x, squares.posicao_y)
-            return True
+                    squares.posicao_y += escala
+                    squares.posicao = (squares.posicao_x, squares.posicao_y)
+        return True
         
     
     def fall_faster(self):
         self.fall_delay_max_steps = 0
+
+    def get_squares_position(self):
+        for square in self.sprite:
+            yield square.posicao
 
     def move(self, side, fixed_squares):
         if side == 'esquerda':
