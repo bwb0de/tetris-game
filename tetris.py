@@ -33,46 +33,54 @@ def get_new_piece(piece_set):
         elif piece == 10: return I()
         elif piece == 11: return O()
 
-def line_check(fixed_squares, fixed_squares_map, num_of_lines_destroyed=0):
-    lines = list(range(0, altura+1, escala))
-    lines.reverse()
-    game_over = False
+
+game_field = np.zeros((numero_linhas, numero_colunas), dtype="int16")
+
+def fix_on_game_field(piece_squares_list, game_field, fixed_squares, move_up=False, check_error=True):
     
-    marked_for_remove = []
-    lines_to_remove = []
+    new_game_field = game_field.copy()
+    new_fixed_squares = fixed_squares.copy()
 
-    if fixed_squares_map[escala*2] >= 1:
-        game_over = True
-        return num_of_lines_destroyed, fixed_squares, fixed_squares_map, game_over
-
-    for line_val in lines:    
-        if fixed_squares_map.get(line_val):
-            if fixed_squares_map[line_val] >= numero_colunas:
-                num_of_lines_destroyed += 1
-                lines_to_remove.append(line_val)
-
-    for line_val in lines_to_remove:
-        for square in fixed_squares:
-            if square.posicao_y == line_val:
-                marked_for_remove.append(square)
-            elif square.posicao_y < line_val:
-                square.posicao_y += escala
-                square.posicao = (square.posicao_x, square.posicao_y)
+    for square in piece_squares_list:
+        idx_x = square.posicao[0] // escala
+        idx_y = square.posicao[1] // escala
+        new_game_field[idx_y, idx_x] = square.idx
+        new_fixed_squares[square.idx] = square
     
-    for square in marked_for_remove:
-        fixed_squares.remove(square)
+    print(new_game_field)
+    print(new_fixed_squares.keys())
 
-    fixed_squares_map = collections.Counter()
-    for square in fixed_squares:
-        fixed_squares_map.update([square.posicao_y])
+    return new_game_field, new_fixed_squares
 
-    for line_val in lines:    
-        if fixed_squares_map.get(line_val):
-            if fixed_squares_map[line_val] >= numero_colunas:
-                num_of_lines_destroyed, fixed_squares, fixed_squares_map, game_over = line_check(fixed_squares, fixed_squares_map, num_of_lines_destroyed=num_of_lines_destroyed)
 
-    return num_of_lines_destroyed, fixed_squares, fixed_squares_map, game_over
+def line_check(game_field, numero_linhas, fixed_squares, escala):
+    n = numero_linhas
+    n -= 1
+    lines_destroyed = 0
+    new_fixed_squares = fixed_squares.copy()
+
+    if not (game_field[n,:] > 0).any():
+        return game_field, fixed_squares
     
+    else:
+        if game_field[n,:].all():
+            for idx in game_field[n,:].flatten():
+                if new_fixed_squares.get(idx):
+                    del(new_fixed_squares[idx])
+
+            upper_mask = game_field[:n,:] > 0
+            for idx in game_field[:n,:][upper_mask].flatten():
+                new_fixed_squares[idx].posicao = (new_fixed_squares[idx].posicao[0], new_fixed_squares[idx].posicao[1] + escala)
+                new_fixed_squares[idx].posicao_x = new_fixed_squares[idx].posicao[0]
+                new_fixed_squares[idx].posicao_y = new_fixed_squares[idx].posicao[1] + escala
+
+            new_first_line = np.zeros((1, numero_colunas), dtype='int16')
+            new_game_field = np.vstack((new_first_line, game_field[:n,:], game_field[n+1:,:]))
+            lines_destroyed += 1
+            return line_check(new_game_field, n, new_fixed_squares, escala)
+        return line_check(game_field, n, new_fixed_squares, escala)
+        
+
 
 def level_check(score):
     steps = list(range(0,1001,50))
@@ -85,8 +93,7 @@ def level_check(score):
 
 
 
-fixed_squares_map = collections.Counter()
-fixed_squares = []
+fixed_squares = {}
 falling_piece = get_new_piece('classic')
 falling_piece.push_to_game()
 next_piece = get_new_piece('classic')
@@ -125,17 +132,18 @@ while True:
                     exit()
 
         ### Movendo a peça para baixo (regras de colisão no objeto)
-        still_falling = falling_piece.fall(fixed_squares)
+        still_falling = falling_piece.fall(fixed_squares, game_field, escala)
 
         if not still_falling:
-            for square in falling_piece.sprite:
-                fixed_squares.append(square)
-                fixed_squares_map.update([square.posicao_y])
+            game_field, fixed_squares = fix_on_game_field(falling_piece.sprite, game_field, fixed_squares)
+            game_field, fixed_squares = line_check(game_field, numero_linhas, fixed_squares, escala)
 
             falling_piece = next_piece
             falling_piece.push_to_game()
             next_piece = get_new_piece(game_set)
-            num_of_lines_destroyed, fixed_squares, fixed_squares_map, game_over = line_check(fixed_squares, fixed_squares_map)
+
+            '''
+            num_of_lines_destroyed = 0
 
             
             if num_of_lines_destroyed > 0:
@@ -146,7 +154,7 @@ while True:
                     dif = level - last_level
                     last_level = level
                     game_speed += dif*4 
-                    
+            '''        
                 
 
         ### Limpa a tela para redesenhar os objetos
@@ -165,8 +173,8 @@ while True:
 
         for square in falling_piece.sprite:
             screen.blit(square.pele, square.posicao)
-        for square in fixed_squares:
-            screen.blit(square.pele, square.posicao)
+        for idx in fixed_squares.keys():
+            screen.blit(fixed_squares[idx].pele, fixed_squares[idx].posicao)
         for square in next_piece.sprite:
             screen.blit(square.pele, square.posicao)
         
